@@ -18,16 +18,25 @@ int main() {
 
 
     char buffer[MAX_CMD_BUFFER];
+    char l_cmd[MAX_CMD_BUFFER];
 
 
-    
+
     while (1) {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
 
         buffer[strcspn(buffer, "\n")] = '\0';
 
-
+        if (strcmp(buffer, "!!") == 0) {
+            if(strlen(l_cmd) == 0) {
+                continue;
+            }
+            printf("%s\n", l_cmd);
+            strcpy(buffer, l_cmd);
+        } else {
+            strcpy(l_cmd, buffer);
+        }
 
         
         if (strcmp(buffer, "exit") == 0) {
