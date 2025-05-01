@@ -38,7 +38,7 @@ int main() {
             strcpy(l_cmd, buffer);
         }
 
-        
+        // I already added exit without knowing that is part 3 of milestone 1
         if (strcmp(buffer, "exit") == 0) {
             printf("Exiting IC shell...\n");
             break;
