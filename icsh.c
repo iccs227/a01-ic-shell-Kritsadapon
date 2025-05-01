@@ -4,6 +4,8 @@
  */
 
 #include "stdio.h"
+#include "stdlib.h"
+#include "string.h"
 
 #define MAX_CMD_BUFFER 255
 
@@ -16,9 +18,25 @@ int main() {
 
 
     char buffer[MAX_CMD_BUFFER];
+
+
+    
     while (1) {
         printf("icsh $ ");
         fgets(buffer, 255, stdin);
-        printf("you said: %s\n", buffer);
+
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+
+
+        
+        if (strcmp(buffer, "exit") == 0) {
+            printf("Exiting IC shell...\n");
+            break;
+        } else if (strcmp(buffer, "clear") == 0) {
+            system("clear");
+        } else if (strncmp(buffer, "echo ", 5) == 0) {
+            printf("%s\n", buffer + 5);
+        }
     }
 }
