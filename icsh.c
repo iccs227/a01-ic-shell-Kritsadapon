@@ -4,114 +4,23 @@
  */
 
 #include "stdio.h"
-#include "stdlib.h"
 #include "string.h"
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>
+#include <signal.h>
+#include "icsh_buildin.h"
+#include "icsh_external.h"
 
 #define MAX_CMD_BUFFER 255
 
-void com_exe_script(char *buffer, char *l_cmd, int *exit_code) {
-    if (strlen(buffer) == 0 || strspn(buffer, " \t") == strlen(buffer)) {
-        return;
+void exe_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
+    char temp[MAX_CMD_BUFFER];
+    strcpy(temp, buffer);
+    if (!buildin_cmd(temp, l_cmd, exit_code, script)) {
+        strcpy(temp, buffer);
+        external_cmd(temp);
     }
-
-    if (buffer[0] == '#' || buffer[0] == '\n') {
-        return;
-    }
-
-    if (strcmp(buffer, "!!") == 0) {
-        if (strlen(l_cmd) == 0) {
-            printf("No previous command to repeat.\n");
-            return;
-        }
-        strcpy(buffer, l_cmd);
-        com_exe_script(buffer, l_cmd, exit_code);
-        return;
-    } else {
-        strcpy(l_cmd, buffer);
-    }
-
-    if (strncmp(buffer, "exit", 4) == 0) {
-        if (strncmp(buffer, "exit ", 5) == 0) {
-            *exit_code = atoi(buffer + 5);
-        }
-        exit(*exit_code);
-    } else if (strcmp(buffer, "clear") == 0) {
-        system("clear");
-    } else if (strncmp(buffer, "echo ", 5) == 0) {
-        printf("%s\n", buffer + 5);
-    } else {
-            int pid = fork();
-            if (pid == 0){
-                char *args[MAX_CMD_BUFFER];
-                int i = 0;
-                char *token = strtok(buffer, " ");
-                while (token != NULL) {
-                    args[i++] = token;
-                    token = strtok(NULL, " ");
-                }
-                args[i] = NULL;
-                
-                if (execvp(args[0], args) == -1) {
-                    perror("Error");
-                    exit(1);
-                }
-            } else{
-                int status;
-                waitpid(pid, &status, 0);
-            }
-        }
 }
-
-void com_exe_cmd(char *buffer, char *l_cmd, int *exit_code) {
-
-    if (strcmp(buffer, "!!") == 0) {
-        if(strlen(l_cmd) == 0) {
-            return;
-        }
-            printf("%s\n", l_cmd);
-            strcpy(buffer, l_cmd);
-        } else {
-            strcpy(l_cmd, buffer);
-        }
-
-        // I already added exit without knowing that is part 3 of milestone 1
-        if (strcmp(buffer, "exit") == 0) {
-            if (strncmp(buffer, "exit ", 5) == 0) {
-                *exit_code = atoi(buffer + 5);
-            }
-            printf("Exiting IC shell...\n");
-            exit(*exit_code);
-        } else if (strcmp(buffer, "clear") == 0) {
-            system("clear");
-        } else if (strncmp(buffer, "echo ", 5) == 0) {
-            printf("%s\n", buffer + 5);
-        }else {
-            int pid = fork();
-            if (pid == 0){
-                char *args[MAX_CMD_BUFFER];
-                int i = 0;
-                char *token = strtok(buffer, " ");
-                while (token != NULL) {
-                    args[i++] = token;
-                    token = strtok(NULL, " ");
-                }
-                args[i] = NULL;
-                
-                if (execvp(args[0], args) == -1) {
-                    perror("Error");
-                    exit(1);
-                }
-            } else{
-                int status;
-                waitpid(pid, &status, 0);
-            }
-        }
-}
-
-
 
 int main(int argc, char *argv[]) {
 
@@ -128,7 +37,7 @@ int main(int argc, char *argv[]) {
         }
         while(fgets(buffer, MAX_CMD_BUFFER, fptr)){
             buffer[strcspn(buffer, "\n")] = '\0';
-            com_exe_script(buffer, l_cmd, &exit_code);
+            exe_cmd(buffer, l_cmd, &exit_code, 1);
         }
         fclose(fptr);
     }else{
@@ -141,7 +50,7 @@ int main(int argc, char *argv[]) {
                 break;
             }
             buffer[strcspn(buffer, "\n")] = '\0';
-            com_exe_cmd(buffer, l_cmd, &exit_code);
+            exe_cmd(buffer, l_cmd, &exit_code, 0);
         }
     }
 }

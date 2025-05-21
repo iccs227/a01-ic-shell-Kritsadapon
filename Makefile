@@ -1,11 +1,12 @@
 CC=gcc
 CFLAGS=-Wall -g 
 BINARY=icsh
+SRCS = icsh.c icsh_buildin.c icsh_external.c
 
-all: icsh
+all: $(BINARY)
 
-icsh: icsh.c
-	$(CC) -o $(BINARY) $(CFLAGS) $<
+$(BINARY): $(SRCS)
+	$(CC) -o $(BINARY) $(CFLAGS) $(SRCS)
 
 .PHONY: clean
 
