@@ -6,29 +6,69 @@
 #include "stdio.h"
 #include "string.h"
 #include <unistd.h>
-#include <sys/types.h>
 #include <signal.h>
+#include <errno.h>
 #include "icsh_buildin.h"
 #include "icsh_external.h"
 
 #define MAX_CMD_BUFFER 255
+
+
+pid_t fg_pgid = 0;
+
+//send SIGTSTP signal to process group foreground_pgid
+void sigtstp_handler(int sig) {
+    if (fg_pgid != 0) {
+        kill(-fg_pgid, SIGTSTP);
+    } else {
+        printf("\n");
+        fflush(stdout);
+    }
+}
+
+//send SIGINT signal to process group foreground_pgid
+void sigint_handler(int sig) {
+    if (fg_pgid != 0) {
+        kill(-fg_pgid, SIGINT);
+    } else {
+        printf("\n");
+        fflush(stdout);
+    }
+}
+
 
 void exe_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     char temp[MAX_CMD_BUFFER];
     strcpy(temp, buffer);
     if (!buildin_cmd(temp, l_cmd, exit_code, script)) {
         strcpy(temp, buffer);
-        external_cmd(temp);
+        external_cmd(temp, exit_code);
     }
 }
 
 int main(int argc, char *argv[]) {
 
+    struct sigaction sa;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+
+    sa.sa_handler = sigtstp_handler;
+    sigaction(SIGTSTP, &sa, NULL);
+    sa.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sa, NULL);
+
+    //ignoring bg process read/write signal to terminal
+    signal(SIGTTOU, SIG_IGN);
+    signal(SIGTTIN, SIG_IGN);
+
+    setpgid(0, 0);
+    
     char buffer[MAX_CMD_BUFFER];
     char l_cmd[MAX_CMD_BUFFER] = "";
     FILE *fptr;
     int exit_code = 0;
 
+    //if argument == 2, script mode
     if (argc == 2){
         fptr = fopen(argv[1], "r");
         if (!fptr) {
@@ -41,16 +81,27 @@ int main(int argc, char *argv[]) {
         }
         fclose(fptr);
     }else{
+        //command line
         printf("Starting IC shell!\n");
         printf("******************************** ^u^ **********************************\n");
         printf("Welcome to IC Shell\n");
         while (1) {
             printf("icsh $ ");
-            if (!fgets(buffer, 255, stdin)) {
+            fflush(stdout);
+
+            //clear buffer
+            memset(buffer, 0, MAX_CMD_BUFFER);
+
+            if (fgets(buffer, MAX_CMD_BUFFER, stdin) == NULL) {
+                if (errno == EINTR) {
+                    clearerr(stdin);
+                    continue;
+                }
                 break;
             }
             buffer[strcspn(buffer, "\n")] = '\0';
             exe_cmd(buffer, l_cmd, &exit_code, 0);
         }
     }
+    return 0;
 }
