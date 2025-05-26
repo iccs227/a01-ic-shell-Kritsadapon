@@ -41,7 +41,6 @@ void exe_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     char temp[MAX_CMD_BUFFER];
     strcpy(temp, buffer);
     if (!buildin_cmd(temp, l_cmd, exit_code, script)) {
-        strcpy(temp, buffer);
         external_cmd(temp, exit_code);
     }
 }
