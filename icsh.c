@@ -11,7 +11,7 @@
 #include "icsh_buildin.h"
 #include "icsh_external.h"
 
-#define MAX_CMD_BUFFER 255
+#define MAX_CMD_BUFFER 1024
 
 
 pid_t fg_pgid = 0;
