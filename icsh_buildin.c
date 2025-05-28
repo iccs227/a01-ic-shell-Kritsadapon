@@ -2,6 +2,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include <unistd.h>
+#include <fcntl.h>
 
 int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     if (strlen(buffer) == 0 || strspn(buffer, " \t") == strlen(buffer)) {
@@ -18,10 +19,25 @@ int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
             printf("No previous command to repeat.\n");
             return 1;
         }
-        if (!script) {
+        if (!script && strchr(l_cmd, '>') == NULL) {
             printf("%s\n", l_cmd);
         }
         strcpy(buffer, l_cmd);
+    //handling "!! " for redirection
+    } else if (strncmp(buffer, "!! ", 3) == 0) {
+        if (strlen(l_cmd) == 0) {
+            printf("No previous command to repeat.\n");
+            return 1;
+        }
+        //creating new command by concat l_cmd + buffer(excluding !!)
+        char temp[1024];
+        snprintf(temp, sizeof(temp), "%s%s", l_cmd, buffer + 2);
+        strncpy(buffer, temp, 1023);
+        buffer[1023] = '\0';
+        //incase uer type "!! "
+        if (!script && strchr(buffer, '>') == NULL) {
+            printf("%s\n", buffer);
+        }
     } else {
         strcpy(l_cmd, buffer);
     }
@@ -40,7 +56,24 @@ int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     } else if (strncmp(buffer, "echo $?", 7) == 0) {
         printf("%d\n", *exit_code);
     } else if (strncmp(buffer, "echo ", 5) == 0) {
-        printf("%s\n", buffer + 5);
+        //special handling for echo redirection
+        // i dont know if the redirection for echo should be excute with external echo or buildin command
+        char *check_out_redir = strchr(buffer, '>');
+        if(check_out_redir) {
+            char *output_file = check_out_redir;
+            *output_file = '\0';
+            output_file++;
+            while (*output_file == ' ' || *output_file == '\t') output_file++;
+
+            int out = open(output_file, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+            if (out < 0) {
+                perror("Couldn't open output file");
+                return 1;
+            }
+        write(out, buffer + 5, strlen(buffer + 5));
+        write(out, "\n", 1);
+        close(out);
+        }else {printf("%s\n", buffer + 5);}
     } else {
         return 0;
     }

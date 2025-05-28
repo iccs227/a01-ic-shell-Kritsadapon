@@ -6,4 +6,5 @@ echo hello
 echo world
 !!
 ls
+!!
 exit 42
