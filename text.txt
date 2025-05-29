@@ -1,0 +1,3 @@
+This above command starts a new process, executes ls, but instead of outputting to the STDOUT, the output is redirected to a file.
+
+The goal for this milestone is the support both input redirection and output redirection. You can read about how to do this in the resource section below.
