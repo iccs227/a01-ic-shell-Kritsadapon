@@ -79,6 +79,14 @@ int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     } else if (strcmp(buffer, "jobs") == 0) {
         print_jobs();
         return 1;
+    } else if (strncmp(buffer, "fg %", 4) == 0) {
+        int jid = atoi(buffer + 4);
+        if (jid <= 0) {
+            printf("fg: invalid job id\n");
+            return 1;
+        }
+        fg_job(jid, exit_code);
+        return 1;
     } else {
         return 0;
     }

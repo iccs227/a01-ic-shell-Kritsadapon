@@ -62,7 +62,7 @@ void print_jobs() {
             last = i;
     for (int i = 0; i < MAXJOBS; i++) {
         if (jobs[i] != 0) {
-            printf("[%d]%c  %d %s\t\t%s & \n", i+1, (i == last) ? '+' : '-', // change here
+            printf("[%d]%c  %d     %s\t\t%s & \n", i+1, (i == last) ? '+' : '-', // change here
                 jobs[i], job_status[i] ? "Stopped" : "running", job_cmd[i]);
         }
     }
@@ -76,11 +76,63 @@ void check_exit_children() {
         int jid = get_jid(terminated_pid);
         if (jid > 0) {
             printf("\n");
-            printf("[%d]  %d done     %s\n", jid, terminated_pid, job_cmd[jid-1]);
-            printf("icsh $ ");
+            printf("[%d]  %d exit    %s\n", jid, terminated_pid, job_cmd[jid-1]);
             fflush(stdout);
             release_job(terminated_pid);
         }
+    }
+}
+
+void mark_job_stopped(pid_t pid, char *cmdline) {
+    int jid = get_jid(pid);
+    if (jid > 0) {
+        job_status[jid-1] = 1;
+    }
+}
+
+
+void fg_job(int jid, int *exit_status) {
+    if (jid <= 0 || jid > MAXJOBS || jobs[jid-1] == 0) {
+        printf("fg: job %d not found\n", jid);
+        return;
+    }
+
+    pid_t pid = jobs[jid-1];
+
+    // If the job was stopped, resume job
+    if (job_status[jid-1]) {
+        if (kill(-pid, SIGCONT) < 0) {
+            perror("kill (SIGCONT)");
+            return;
+        }
+        job_status[jid-1] = 0;
+    }
+
+    char *cmdline = job_cmd[jid-1];
+    printf("%s\n", cmdline);
+
+
+    fg_pgid = pid;
+    // Set the foreground process group
+    tcsetpgrp(STDIN_FILENO, pid );
+
+    int status;
+    //wait for process to finished/end
+    waitpid(pid, &status, WUNTRACED);
+
+    fg_pgid =0;
+    tcsetpgrp(STDIN_FILENO, getpgid(0));
+
+    if (WIFEXITED(status)) {
+        *exit_status = WEXITSTATUS(status);
+        release_job(pid);
+    } else if (WIFSIGNALED(status)) {
+        *exit_status = WTERMSIG(status);
+        release_job(pid);
+    } else if (WIFSTOPPED(status)) {
+        *exit_status = WSTOPSIG(status);
+        mark_job_stopped(pid, cmdline);
+        printf("\n[%d]  + %d suspended  %s\n", jid , pid, cmdline);
     }
 }
 
