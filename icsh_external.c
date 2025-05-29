@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/signal.h>
 #include <errno.h>
 #include "icsh_jobs.h"
 #include "icsh_animation.h"

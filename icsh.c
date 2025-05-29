@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/signal.h>
 #include "icsh_buildin.h"
 #include "icsh_external.h"
 #include "icsh_jobs.h"
