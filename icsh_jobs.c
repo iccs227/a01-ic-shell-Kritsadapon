@@ -1,9 +1,11 @@
 #include "icsh_jobs.h"
+#include "icsh_animation.h"
 #include <stdio.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 pid_t jobs[MAXJOBS] = {0};
 char job_status[MAXJOBS] = {0};
@@ -77,7 +79,6 @@ void check_exit_children() {
         if (jid > 0) {
             printf("\n");
             printf("[%d]  %d exit    %s\n", jid, terminated_pid, job_cmd[jid-1]);
-            printf("icsh $ ");
             fflush(stdout);
             release_job(terminated_pid);
         }
@@ -112,6 +113,12 @@ void fg_job(int jid, int *exit_status) {
     char *cmdline = job_cmd[jid-1];
     printf("%s\n", cmdline);
 
+    //check if sleep
+    int is_sleep = (strncmp(cmdline, "sleep", 5) == 0);
+
+    if (is_sleep) {
+        start_kitten_animation(cmdline);
+    }
 
     fg_pgid = pid;
     // Set the foreground process group
@@ -120,6 +127,10 @@ void fg_job(int jid, int *exit_status) {
     int status;
     //wait for process to finished/end
     waitpid(pid, &status, WUNTRACED);
+
+    if (is_sleep) {
+        stop_kitten_animation();
+    }
 
     fg_pgid =0;
     tcsetpgrp(STDIN_FILENO, getpgid(0));

@@ -5,8 +5,10 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <errno.h>
 #include "icsh_jobs.h"
+#include "icsh_animation.h"
 #define MAX_CMD_BUFFER 1024
 
 extern pid_t fg_pgid;
@@ -107,8 +109,19 @@ void external_cmd(char *buffer, int *exit_status) {
             tcsetpgrp(STDIN_FILENO, pid);
 
             int status;
+            //check if sleep
+            int is_sleep = (strncmp(buffer, "sleep", 5) == 0);
+            
+            if (is_sleep) {
+                start_kitten_animation(cmdline);
+            }
+
             //wait for process to finished/end
             waitpid(pid, &status, WUNTRACED);
+
+            if (is_sleep) {
+                stop_kitten_animation();
+            }
 
             fg_pgid = 0;
 

@@ -3,8 +3,11 @@
 #include "string.h"
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "icsh_jobs.h"
+
+extern int show_cat_animation;
 
 int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     if (strlen(buffer) == 0 || strspn(buffer, " \t") == strlen(buffer)) {
@@ -55,6 +58,14 @@ int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
         exit(*exit_code);
     } else if (strcmp(buffer, "clear") == 0) {
         system("clear");
+    } else if (strncmp(buffer, "kitten", 5) == 0) {
+        show_cat_animation = !show_cat_animation;
+        if (show_cat_animation) {
+            printf("Cat is here. ฅ^•⩊•^ฅ\n");
+        } else {
+            printf("Cat bye bye. /ᐠ◞ᆺ◟マ\n");
+        }
+        return 1;
     } else if (strncmp(buffer, "echo $?", 7) == 0) {
         printf("%d\n", *exit_code);
     } else if (strncmp(buffer, "echo ", 5) == 0) {

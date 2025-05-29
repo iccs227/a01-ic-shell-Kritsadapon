@@ -11,6 +11,7 @@
 #include "icsh_buildin.h"
 #include "icsh_external.h"
 #include "icsh_jobs.h"
+#include "icsh_animation.h"
 
 #define MAX_CMD_BUFFER 1024
 
@@ -23,6 +24,7 @@ void sigtstp_handler(int sig) {
         kill(-fg_pgid, SIGTSTP);
     } else {
         printf("\n");
+        printf("icsh $ ");
         fflush(stdout);
     }
 }
@@ -33,6 +35,7 @@ void sigint_handler(int sig) {
         kill(-fg_pgid, SIGINT);
     } else {
         printf("\n");
+        printf("icsh $ ");
         fflush(stdout);
     }
 }
@@ -63,6 +66,8 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sa, NULL);
     sa.sa_handler = sigchld_handler;
     sigaction(SIGCHLD, &sa, NULL);
+    sa.sa_handler = timer_handler;
+    sigaction(SIGALRM, &sa, NULL);
 
     //ignoring bg process read/write signal to terminal
     signal(SIGTTOU, SIG_IGN);
