@@ -77,6 +77,7 @@ void check_exit_children() {
         if (jid > 0) {
             printf("\n");
             printf("[%d]  %d exit    %s\n", jid, terminated_pid, job_cmd[jid-1]);
+            printf("icsh $ ");
             fflush(stdout);
             release_job(terminated_pid);
         }
@@ -134,5 +135,31 @@ void fg_job(int jid, int *exit_status) {
         mark_job_stopped(pid, cmdline);
         printf("\n[%d]  + %d suspended  %s\n", jid , pid, cmdline);
     }
+}
+
+void bg_job(int jid) {
+    if (jid <= 0 || jid > MAXJOBS || jobs[jid-1] == 0) {
+        printf("fg: job %d not found\n", jid);
+        return;
+    }
+
+    pid_t pid = jobs[jid-1];
+    char *cmdline = job_cmd[jid-1];
+
+    //check status if running
+    if (!job_status[jid-1]) {
+        printf("bg: job %d already running\n", jid);
+        return;
+    }
+
+
+    if (kill(-pid, SIGCONT) < 0) {
+        perror("kill_BG (SIGCONT)");
+        return;
+    }
+
+    // change child status
+    job_status[jid-1] = 0;
+    printf("[%d] %d %s &\n", jid, pid, cmdline);
 }
 

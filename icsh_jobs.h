@@ -18,5 +18,6 @@ int get_jid(pid_t pid);
 void print_jobs();
 void check_exit_children();
 void fg_job(int jid, int *exit_status);
+void bg_job(int jid);
 
 #endif
