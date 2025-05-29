@@ -79,6 +79,7 @@ void check_exit_children() {
         if (jid > 0) {
             printf("\n");
             printf("[%d]  %d exit    %s\n", jid, terminated_pid, job_cmd[jid-1]);
+            printf("icsh $ ");
             fflush(stdout);
             release_job(terminated_pid);
         }
