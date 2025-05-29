@@ -10,6 +10,7 @@
 #include <errno.h>
 #include "icsh_buildin.h"
 #include "icsh_external.h"
+#include "icsh_jobs.h"
 
 #define MAX_CMD_BUFFER 1024
 
@@ -36,6 +37,10 @@ void sigint_handler(int sig) {
     }
 }
 
+void sigchld_handler(int sig) {
+    check_exit_children();
+}
+
 
 void exe_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     char temp[MAX_CMD_BUFFER];
@@ -48,13 +53,16 @@ void exe_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
 int main(int argc, char *argv[]) {
 
     struct sigaction sa;
-    sa.sa_flags = 0;
+    //this part fix the ctrl + z
+    sa.sa_flags = SA_RESTART;
     sigemptyset(&sa.sa_mask);
 
     sa.sa_handler = sigtstp_handler;
     sigaction(SIGTSTP, &sa, NULL);
     sa.sa_handler = sigint_handler;
     sigaction(SIGINT, &sa, NULL);
+    sa.sa_handler = sigchld_handler;
+    sigaction(SIGCHLD, &sa, NULL);
 
     //ignoring bg process read/write signal to terminal
     signal(SIGTTOU, SIG_IGN);
@@ -85,6 +93,7 @@ int main(int argc, char *argv[]) {
         printf("******************************** ^u^ **********************************\n");
         printf("Welcome to IC Shell\n");
         while (1) {
+            check_exit_children();
             printf("icsh $ ");
             fflush(stdout);
 

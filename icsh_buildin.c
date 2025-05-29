@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "icsh_jobs.h"
+
 int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
     if (strlen(buffer) == 0 || strspn(buffer, " \t") == strlen(buffer)) {
         return 1;
@@ -74,6 +76,9 @@ int buildin_cmd(char *buffer, char *l_cmd, int *exit_code, int script) {
         write(out, "\n", 1);
         close(out);
         }else {printf("%s\n", buffer + 5);}
+    } else if (strcmp(buffer, "jobs") == 0) {
+        print_jobs();
+        return 1;
     } else {
         return 0;
     }

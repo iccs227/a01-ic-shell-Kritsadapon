@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall -g 
 BINARY=icsh
-SRCS = icsh.c icsh_buildin.c icsh_external.c
+SRCS = icsh.c icsh_buildin.c icsh_external.c icsh_jobs.c
 
 all: $(BINARY)
 

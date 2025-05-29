@@ -6,16 +6,44 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <errno.h>
+#include "icsh_jobs.h"
 #define MAX_CMD_BUFFER 1024
 
 extern pid_t fg_pgid;
 
 void external_cmd(char *buffer, int *exit_status) {
+
+    int background = 0;
+    size_t len = strlen(buffer);
+
+    //check if bg process
+    //cleaning the command line removing
+    if (len > 0 && buffer[len-1] == '&') {
+        background= 1;
+        buffer[len-1] = '\0';
+        while (len > 1 && (buffer[len-2] == ' ' || buffer[len-2] =='\t')) {
+            buffer[len-2] = '\0';
+            len--;
+        }
+    }
+    char cmdline[MAX_CMD_BUFFER];
+    strncpy(cmdline,buffer, MAX_CMD_BUFFER-1);
+    cmdline[MAX_CMD_BUFFER-1] = '\0';
+
     int pid = fork();
     if (pid == 0){
 
         setpgid(0, 0);
 
+        //set signal default
+        signal(SIGTSTP, SIG_DFL);
+        signal(SIGINT, SIG_DFL);
+        signal(SIGCHLD, SIG_DFL);
+
+
+        if (!background) {
+            tcsetpgrp(STDIN_FILENO, getpgid(0));
+        }
 
         char *args[MAX_CMD_BUFFER];
         int i = 0;
@@ -70,29 +98,43 @@ void external_cmd(char *buffer, int *exit_status) {
         }
     } else{
         setpgid(pid, pid);
-        
-        fg_pgid = pid;
-        
-        tcsetpgrp(STDIN_FILENO, pid);
-        
-        int status;
-        //wait for process to finished/end
-        waitpid(pid, &status, WUNTRACED);
 
-        fg_pgid = 0;
+        if (background) {
+            save_job(pid, cmdline, 0);
+        } else {
+            fg_pgid = pid;
 
-        tcsetpgrp(STDIN_FILENO, getpgid(0));
+            tcsetpgrp(STDIN_FILENO, pid);
 
-        //end normally
-        if (WIFEXITED(status)) {
-            *exit_status = WEXITSTATUS(status);
-        }//process terminated
-        else if (WIFSIGNALED(status)) {
-            *exit_status = WTERMSIG(status);
-        }//process suspend
-        else if (WIFSTOPPED(status)) {
-            *exit_status = WSTOPSIG(status);
-            printf("\n[%d] Stopped\n", pid);
+            int status;
+            //wait for process to finished/end
+            waitpid(pid, &status, WUNTRACED);
+
+            fg_pgid = 0;
+
+            tcsetpgrp(STDIN_FILENO, getpgid(0));
+
+            //end normally
+            if (WIFEXITED(status)) {
+                *exit_status = WEXITSTATUS(status);
+            }//process terminated
+            else if (WIFSIGNALED(status)) {
+                *exit_status = WTERMSIG(status);
+                release_job(pid);
+            }//process suspend
+            else if (WIFSTOPPED(status)) {
+                *exit_status = WSTOPSIG(status);
+                if (WSTOPSIG(status) == SIGTSTP) {
+                    int check_status;
+                    if (waitpid(pid, &check_status, WNOHANG) == 0) {
+                        int jid = get_jid(pid);
+                        if (jid == -1) {
+                            save_job(pid, cmdline, 1);
+                            printf("\n[%d]  + %d suspended  %s\n", get_jid(pid), pid, cmdline);
+                        }
+                    }
+                }
+            }
         }
     }
 }
